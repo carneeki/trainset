@@ -1,0 +1,16 @@
+[package]
+name = "trainset"
+version = "0.1.0"
+authors = ["Adam Carmichael <carneeki@carneeki.net>"]
+
+[features]
+yaml = ["yaml-rust"]
+
+[dependencies]
+meval = "*"
+itertools = "*"
+yaml-rust = { version = "0.3.5", optional = true }
+
+[dependencies.clap]
+version = "*"
+features = ["yaml"]

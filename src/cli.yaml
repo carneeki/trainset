@@ -1,0 +1,38 @@
+name: trainset
+about: calculate pitches a lathe can cut based on the gears in a library file in the form (M/N)*(A*C)/(B*D) * leadscrew_pitch
+
+subcommands:
+    - generate:
+        about: generate a pitch db and text files
+        args:
+            - lib:
+                help: library file containing one gear per line, duplicate lines permitted
+                index: 1
+                required: true
+            - gb_ratios:
+                help: for lathes with a gearbox, or additional reduction ratios
+                index: 2
+                required: true
+            - gear_m:
+                help: M gear, size of gear on the spindle
+                index: 3
+                required: true
+            - gear_n:
+                help: N gear, size of gear that idles with spindle, same shaft as A
+                index: 4
+                required: true
+            - pitch:
+                help: pitch of leadscrew
+                index: 5
+                required: true
+            - out:
+                help: output textfile containing gear combinations
+                index: 6
+                required: true
+    - lookup:
+        about: lookup a desired pitch in the database
+        args:
+            - pitch:
+                help: desired pitch to search for
+                index: 1
+                required: true
