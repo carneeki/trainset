@@ -36,9 +36,9 @@ to get a listing of all combinations close to 2.50mm pitch.
 # TODO list items
 [ ] lookups
 [ ] write a binary file for storing gear combos with fast lookups
-[ ] write the text file to an output rather than to STDOUT (screen)
+[x] write the text file to an output rather than to STDOUT (screen)
 [ ] merge the different configuration files (.lib.txt, .gb.txt, and the three magic numbers into a single configuration file)
-[ ] less ``.clone()``s in the code
+[x] less ``.clone()``s in the code
 [ ] optimise CPU
 
 # Thanks
