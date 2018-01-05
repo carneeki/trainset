@@ -23,13 +23,12 @@ These settings are for my lathe, a Chinese "CQ6125". The Grizzly G0602 will be s
   * 40 is a gear attached to the spindle
   * 60 is a gear driven by the spindle. Typically this will have the "A" gear on the same shaft.
   * 2 is the pitch (in mm) of the leadscrew
-  * CQ6125.out.txt is the output file... currently this feature is on the TODO list, so the output is displayed on screen, but can be sent to a file like so:
-`target/debug/trainset generate CQ6125.lib.txt CQ6125.gb.txt 40 60 2 output.txt > CQ6125.out.txt`
+  * CQ6125.out.txt is the output text file.
 
 ## Running a lookup
 ... on the TODO list. But it'll be something like this:
 
-`./trainset lookup CQ6125.db.txt 2.5`
+`./trainset lookup CQ6125.db 2.5`
 
 to get a listing of all combinations close to 2.50mm pitch.
 
