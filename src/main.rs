@@ -19,7 +19,6 @@ fn main()
     let yml = load_yaml!("cli.yaml");
     let m = App::from_yaml(yml).get_matches();
 
-
     match m.subcommand_name()
     {
         Some("generate") => generate(m),
@@ -42,7 +41,7 @@ fn generate(m_opts: clap::ArgMatches)
 
         // file output (w/buffering)
         let out_str = m_opts.value_of("out").unwrap();
-        let mut out_file = match File::create(Path::new(out_str))
+        let out_file = match File::create(Path::new(out_str))
         {
             Ok(out_file) => out_file,
             Err(e) => panic!("Couldn't open output file: {:?}", e),
@@ -65,10 +64,12 @@ fn generate(m_opts: clap::ArgMatches)
             // b/a
             for r in &ratios
             {
-                let mut ans = (mnp * (a/b) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, a, b, r, pitch, ans, 25.4/ans ));
-                ans = (mnp * (b/a) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, a, b, r, pitch, ans, 25.4/ans ));
+                // TODO: turn the out.write_fmt() calls into functions, or use a string for the
+                // format string. FUGLY!
+                let mut ans = mnp * (a/b) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, b, r, pitch, ans, 25.4/ans )).unwrap();
+                ans = mnp * (b/a) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, b, r, pitch, ans, 25.4/ans )).unwrap();
             }
         }
 
@@ -90,36 +91,33 @@ fn generate(m_opts: clap::ArgMatches)
             // cd / ab
             for r in &ratios
             {
+                // TODO: turn the out.write_fmt() calls into functions, or use a string for the
+                // format string. FUGLY!
                 let mut ans;
-                ans = (mnp * ((a*c)/(b*d)) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, a, c, b, d, r, pitch, ans, 25.4/ans) );
-                ans = (mnp * ((a*b)/(c*d)) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, a, b, c, d, r, pitch, ans, 25.4/ans) );
-                ans = (mnp * ((a*d)/(b*c)) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, a, d, b, c, r, pitch, ans, 25.4/ans) );
-                ans = (mnp * ((b*c)/(a*d)) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, b, c, a, d, r, pitch, ans, 25.4/ans) );
-                ans = (mnp * ((b*d)/(a*c)) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, b, d, a, c, r, pitch, ans, 25.4/ans) );
-                ans = (mnp * ((c*d)/(a*b)) * r);
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:2.5}mm ({:2.5} TPI)\n", m, n, c, d, a, b, r, pitch, ans, 25.4/ans) );
-                /*
-                print_abcd(&m, &n, &a, &c, &b, &d, &r, &pitch, mnp * ( (a*c) / (b*d)) * r );
-                print_abcd(&m, &n, &a, &b, &c, &d, &r, &pitch, mnp * ( (a*b) / (c*d)) * r );
-                print_abcd(&m, &n, &a, &d, &b, &c, &r, &pitch, mnp * ( (a*d) / (b*c)) * r );
-                print_abcd(&m, &n, &b, &c, &a, &d, &r, &pitch, mnp * ( (b*c) / (a*d)) * r );
-                print_abcd(&m, &n, &b, &d, &a, &c, &r, &pitch, mnp * ( (b*d) / (a*c)) * r );
-                print_abcd(&m, &n, &c, &d, &a, &b, &r, &pitch, mnp * ( (c*d) / (a*b)) * r );
-                */
+                ans = mnp * ((a*c)/(b*d)) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, c, b, d, r, pitch, ans, 25.4/ans) ).unwrap();
+                ans = mnp * ((a*b)/(c*d)) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, b, c, d, r, pitch, ans, 25.4/ans) ).unwrap();
+                ans = mnp * ((a*d)/(b*c)) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, d, b, c, r, pitch, ans, 25.4/ans) ).unwrap();
+                ans = mnp * ((b*c)/(a*d)) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, b, c, a, d, r, pitch, ans, 25.4/ans) ).unwrap();
+                ans = mnp * ((b*d)/(a*c)) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, b, d, a, c, r, pitch, ans, 25.4/ans) ).unwrap();
+                ans = mnp * ((c*d)/(a*b)) * r;
+                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, c, d, a, b, r, pitch, ans, 25.4/ans) ).unwrap();
             }
         }
     }
 }
 
-//fn print_abcd(m: &f64, n: &f64, a: &f64, b: &f64, c: &f64, d: &f64, r: &f64, pitch: &f64, ans: f64)
-//{
-    //println!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:2.5}", m, n, a, c, b, d, r, pitch, ans );
-//}
+// TODO: fixme.
+/*
+fn write2gear(buf :BufWriter, mnp:f64, m:f64, n:f64, p:f64, r:f64, top:f64, bottom:f64, ans:f64)
+{
+    buf.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, top, bottom, r, p, ans, 25.4/ans )).unwrap();
+}
+*/
 
 fn lookup(m: clap::ArgMatches)
 {
@@ -165,7 +163,6 @@ where
             Ok(v) => v,
             Err(e) => panic!("{:?}", e)
         })
-        //.map(|l| l.parse::<f64>().unwrap())
         .collect()
 }
 
