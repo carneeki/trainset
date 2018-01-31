@@ -32,7 +32,11 @@ subcommands:
     - lookup:
         about: lookup a desired pitch in the database
         args:
+            - db:
+                help: database file to search
+                index: 1
+                required: true
             - pitch:
                 help: desired pitch to search for
-                index: 1
+                index: 2
                 required: true

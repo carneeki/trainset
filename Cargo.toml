@@ -10,6 +10,7 @@ yaml = ["yaml-rust"]
 meval = "*"
 itertools = "*"
 yaml-rust = { version = "0.3.5", optional = true }
+sqlite = "*"
 
 [dependencies.clap]
 version = "*"

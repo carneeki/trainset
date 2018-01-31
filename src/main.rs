@@ -2,14 +2,14 @@
 extern crate clap;
 extern crate meval;
 extern crate itertools;
+extern crate sqlite;
 
-use std::io::{self, BufRead};
-use std::io::prelude::*;
+use std::io::BufRead;
 use std::io::BufReader;
-use std::io::BufWriter;
 use std::path::Path;
 use std::fs::File;
 use itertools::Itertools;
+use sqlite::Value;
 
 #[cfg(feature = "yaml")]
 fn main()
@@ -38,22 +38,50 @@ fn generate(m_opts: clap::ArgMatches)
         let m: f64 = m_opts.value_of("gear_m").unwrap().parse::<f64>().unwrap();  // TODO dafuq?
         let n: f64 = m_opts.value_of("gear_n").unwrap().parse::<f64>().unwrap();  // TODO same
         let pitch: f64 = m_opts.value_of("pitch").unwrap().parse::<f64>().unwrap(); // TODO and me
+        let mnp: f64 = (m/n)*pitch;
 
-        // file output (w/buffering)
-        let out_str = m_opts.value_of("out").unwrap();
-        let out_file = match File::create(Path::new(out_str))
-        {
-            Ok(out_file) => out_file,
-            Err(e) => panic!("Couldn't open output file: {:?}", e),
-        };
-        let mut out = BufWriter::new(&out_file);
+        // db output file string
+        let db_str = m_opts.value_of("out").unwrap();
+
+        let db_journal_mode = "PRAGMA JOURNAL_MODE = OFF;"; // disable journal to increase write performance
+        let db_synchronous = "PRAGMA SYNCHRONOUS = OFF;";   // disable rollback sync
+        let db_exclusive = "PRAGMA LOCKING_MODE = EXCLUSIVE;"; // exclusive for more fasters
+        let db_tempstore = "PRAGMA TEMP_STORE = MEMORY;"; // temp objects in RAM
+        let db_cache_size = "PRAGMA PAGE_COUNT = 10000;"; // TODO: tune me
+        let db_page_size = "PRAGMA PAGE_SIZE = 16384;";   // TODO: tune me
+        let db_drop_table = "DROP TABLE IF EXISTS `pitches`;";
+        let db_create_table = "
+            CREATE TABLE `pitches` (
+                `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+                `pitch` REAL NOT NULL,
+                `m` INTEGER NOT NULL,
+                `n` INTEGER NOT NULL,
+                `a` INTEGER NOT NULL,
+                `b` INTEGER NOT NULL,
+                `c` INTEGER NOT NULL,
+                `d` INTEGER NOT NULL,
+                `r` REAL NOT NULL);";
+        let db_create_idx = "
+            CREATE INDEX `idx_pitches` ON `pitches` (
+               `pitch`	ASC);";
+
+        let db = sqlite::open(Path::new(db_str)).unwrap();
+        db.execute(db_cache_size).unwrap();
+        db.execute(db_page_size).unwrap();
+        db.execute(db_drop_table).unwrap();
+        db.execute("VACUUM;").unwrap();
+        db.execute(db_journal_mode).unwrap();
+        db.execute(db_synchronous).unwrap();
+        db.execute(db_exclusive).unwrap();
+        db.execute(db_tempstore).unwrap();
+        db.execute(db_create_table).unwrap();
+        db.execute(db_create_idx).unwrap();
 
         let gears: Vec<i32> = gears_from_file(lib);
         let ratios: Vec<f64> = ratios_from_file(gb_ratios);
 
-        let mnp: f64 = (m/n)*pitch;
-
         // iterate every ab combination
+        db.execute("BEGIN").unwrap();
         for combos in gears.clone().into_iter().combinations(2)
         {
             let a = combos[0] as f64;
@@ -64,12 +92,13 @@ fn generate(m_opts: clap::ArgMatches)
             // b/a
             for r in &ratios
             {
-                // TODO: turn the out.write_fmt() calls into functions, or use a string for the
+                // TODO: turn the dbg.write_fmt() calls into functions, or use a string for the
                 // format string. FUGLY!
-                let mut ans = mnp * (a/b) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, b, r, pitch, ans, 25.4/ans )).unwrap();
+                let mut ans :f64 = mnp * (a/b) * r;
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},0,0,{})",ans,m,n,a,b,r)).unwrap();
+
                 ans = mnp * (b/a) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, b, r, pitch, ans, 25.4/ans )).unwrap();
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},0,0,{})",ans,m,n,b,a,r)).unwrap();
             }
         }
 
@@ -91,48 +120,63 @@ fn generate(m_opts: clap::ArgMatches)
             // cd / ab
             for r in &ratios
             {
-                // TODO: turn the out.write_fmt() calls into functions, or use a string for the
+                // TODO: turn the dbg.write_fmt() calls into functions, or use a string for the
                 // format string. FUGLY!
-                let mut ans;
+                let mut ans :f64;
                 ans = mnp * ((a*c)/(b*d)) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, c, b, d, r, pitch, ans, 25.4/ans) ).unwrap();
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},{},{},{})",ans,m,n,a,c,b,d,r)).unwrap();
+
                 ans = mnp * ((a*b)/(c*d)) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, b, c, d, r, pitch, ans, 25.4/ans) ).unwrap();
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},{},{},{})",ans,m,n,a,b,c,d,r)).unwrap();
+
                 ans = mnp * ((a*d)/(b*c)) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, a, d, b, c, r, pitch, ans, 25.4/ans) ).unwrap();
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},{},{},{})",ans,m,n,a,d,b,c,r)).unwrap();
+
                 ans = mnp * ((b*c)/(a*d)) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, b, c, a, d, r, pitch, ans, 25.4/ans) ).unwrap();
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},{},{},{})",ans,m,n,b,c,a,d,r)).unwrap();
+
                 ans = mnp * ((b*d)/(a*c)) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, b, d, a, c, r, pitch, ans, 25.4/ans) ).unwrap();
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},{},{},{})",ans,m,n,b,d,a,c,r)).unwrap();
+
                 ans = mnp * ((c*d)/(a*b)) * r;
-                out.write_fmt(format_args!("({:03}/{:03}) * [({:03} * {:03}) / ({:03} * {:03})] * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, c, d, a, b, r, pitch, ans, 25.4/ans) ).unwrap();
+                db.execute(format!("INSERT INTO pitches (pitch,m,n,a,b,c,d,r) VALUES ('{}',{},{},{},{},{},{},{})",ans,m,n,c,d,a,b,r)).unwrap();
             }
         }
+        db.execute("END").unwrap();
     }
 }
 
-// TODO: fixme.
-/*
-fn write2gear(buf :BufWriter, mnp:f64, m:f64, n:f64, p:f64, r:f64, top:f64, bottom:f64, ans:f64)
+fn lookup(m_opts: clap::ArgMatches)
 {
-    buf.write_fmt(format_args!("({:03}/{:03}) * ({:03} / {:03}) * {:2.5} * {:?} = {:?}mm ({:?} TPI)\n", m, n, top, bottom, r, p, ans, 25.4/ans )).unwrap();
-}
-*/
-
-fn lookup(m: clap::ArgMatches)
-{
-    if let Some(ref m) = m.subcommand_matches("generate")
+    if let Some(ref m_opts) = m_opts.subcommand_matches("lookup")
     {
-        let db = m.value_of("db").unwrap();
-        let pitch = m.value_of("pitch").unwrap();
-        for line in lines_from_file(db).unwrap()
+        // db output file string
+        let db_str = m_opts.value_of("db").unwrap();
+        let db = sqlite::open(Path::new(db_str)).unwrap();
+        let pitch :f64 = m_opts.value_of("pitch").unwrap().parse().unwrap();  // this is just derp
+
+        // something panics around here
+        let mut cursor = db
+            .prepare("SELECT * FROM pitches WHERE pitch = ?")
+            .unwrap()
+            .cursor();
+
+        println!("pitch = {}", pitch);
+        cursor.bind(&[Value::Float(pitch)]).unwrap();
+
+        while let Some(row) = cursor.next().unwrap()
         {
-            let line = match line
-            {
-                Ok(line) => line,
-                Err(err) => panic!("failed to read line: {}", err)
-            };
-            assert_eq!(line.trim(), pitch);
+            // or maybe here???
+            println!("{} = {}/{} * {}/{} * {}/{} * {}",
+                row[1].as_float().unwrap(),
+                row[2].as_integer().unwrap(),
+                row[3].as_integer().unwrap(),
+                row[4].as_integer().unwrap(),
+                row[5].as_integer().unwrap(),
+                row[6].as_integer().unwrap(),
+                row[7].as_integer().unwrap(),
+                row[8].as_float().unwrap()
+            );
         }
     }
 }
@@ -164,16 +208,6 @@ where
             Err(e) => panic!("{:?}", e)
         })
         .collect()
-}
-
-// https://stackoverflow.com/a/30801708
-// returns BufReader s of strings
-fn lines_from_file<P>(filename: P) -> Result<io::Lines<io::BufReader<File>>, io::Error>
-where
-    P: AsRef<Path>,
-{
-    let file = try!(File::open(filename));
-    Ok(io::BufReader::new(file).lines())
 }
 
 #[cfg(not(feature = "yaml"))]
