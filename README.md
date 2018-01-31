@@ -34,12 +34,12 @@ to get a listing of all combinations close to 2.50mm pitch.
 
 # TODO list items
 Some of the TODO stuffs:
-[x] lookups
-[x] write a binary file for storing gear combos with fast lookups
-[x] write the text file to an output rather than to STDOUT (screen)
-[ ] merge the different configuration files (.lib.txt, .gb.txt, and the three magic numbers into a single configuration file)
-[x] less ``.clone()``s in the code
-[ ] optimise CPU
+- [x] lookups
+- [x] write a binary file for storing gear combos with fast lookups
+- [x] write the text file to an output rather than to STDOUT (screen)
+- [ ] merge the different configuration files (.lib.txt, .gb.txt, and the three magic numbers into a single configuration file)
+- [x] less ``.clone()``s in the code
+- [ ] optimise CPU
 
 # Thanks
 Many thanks to Mitchell Hunter [mitchicus] for putting up with my troubleshooting of Rust.
