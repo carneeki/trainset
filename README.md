@@ -41,6 +41,7 @@ Some of the TODO stuffs:
 - [x] less ``.clone()``s in the code
 - [ ] optimise CPU
 - [ ] too many ``.unwrap()``s in the code... can I fix this?
+- [ ] sqlite is kinda sluggish (about 10x slower) compared to just writing out a text file
 
 # Thanks
 Many thanks to Mitchell Hunter [mitchicus] for putting up with my troubleshooting of Rust.
