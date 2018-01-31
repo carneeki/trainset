@@ -40,6 +40,7 @@ Some of the TODO stuffs:
 - [ ] merge the different configuration files (.lib.txt, .gb.txt, and the three magic numbers into a single configuration file)
 - [x] less ``.clone()``s in the code
 - [ ] optimise CPU
+- [ ] too many ``.unwrap()``s in the code... can I fix this?
 
 # Thanks
 Many thanks to Mitchell Hunter [mitchicus] for putting up with my troubleshooting of Rust.
